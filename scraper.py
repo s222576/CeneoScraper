@@ -1,17 +1,28 @@
-from translate import Translator
+from googletrans import Translator
 from bs4 import BeautifulSoup
 import requests
 import json
 
+dest = "en"
+src = "pl"
+translator = Translator()
+
 def get_element(parent, selector, attribute = None, return_list = False):
     try:
         if return_list:
-            return [item.text.strip() for item in parent.select(selector)]
+            return ", ".join([item.text.strip() for item in parent.select(selector)])
         if attribute:
             return parent.select_one(selector)[attribute]
         return parent.select_one(selector).text.strip()
     except (AttributeError, TypeError):
         return None
+
+def translate(text, src=src, dest=dest):
+    try:
+        return translator.translate(text, src=src, dest=dest).text
+    except (AttributeError, TypeError):
+        print("Error")
+        return ""
 
 opinion_elements = {
     "author":["span.user-post__author-name"],
@@ -25,10 +36,6 @@ opinion_elements = {
     "pros": ["div.review-feature__title--positives ~ div.review-feature__item", None, True],
     "cons": ["div.review-feature__title--negatives ~ div.review-feature__item", None, True]
 }
-
-to_lang = "en"
-from_lang = "pl"
-translator = Translator(to_lang=to_lang, from_lang=from_lang)
 
 product_id = input("Please enter the product id: ")
 url = f"https://www.ceneo.pl/{product_id}#tab=reviews"
@@ -51,7 +58,9 @@ while (url):
         single_opinion["score"] = float(single_opinion["score"].split("/")[0].replace(",", "."))
         single_opinion["useful_for"] = int(single_opinion["useful_for"])
         single_opinion["useless_for"] = int(single_opinion["useless_for"])
-        single_opinion["content_en"] = translator.translate(single_opinion["content"])
+        single_opinion["content_en"] = translate(single_opinion["content"]) if single_opinion["content"] else ""
+        single_opinion['pros_en'] = translate(single_opinion['pros']) if single_opinion["pros"] else ""
+        single_opinion['cons_en'] = translate(single_opinion['cons']) if single_opinion["cons"] else ""
         all_opinions.append(single_opinion)
 
     try:
